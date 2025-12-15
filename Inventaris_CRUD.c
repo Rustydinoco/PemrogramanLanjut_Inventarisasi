@@ -2,11 +2,11 @@
 #include <string.h>
 #include <math.h> 
 
-#define MAX_BARANG 20000
+#define MAX_BARANG 30000
 
 typedef struct {
     char id [10];
-    char nama[50];
+    char nama[255];
     int jumlah;
 } Barang;   
 
@@ -24,6 +24,68 @@ void tampilkanMenu() {
     printf("6. Keluar\n");
     printf("7. Urutkan Barang Berdasarkan Stok\n");
     printf("8. Simpan Ke Inventaris\n");
+}
+
+void simpanKeJSON(const char *namaFile) {
+    FILE *fp = fopen(namaFile, "w");
+    if (fp == NULL) {
+        printf("Gagal membuka file untuk menyimpan data.\n");
+        return;
+    }
+
+    fprintf(fp, "[\n");
+    for (int i = 0; i < jumlah_barang; i++) {
+        fprintf(fp,
+            "  {\n"
+            "    \"id\": \"%s\",\n"
+            "    \"nama\": \"%s\",\n"
+            "    \"jumlah\": %d\n"
+            "  }%s\n",
+            inventaris[i].id,
+            inventaris[i].nama,
+            inventaris[i].jumlah,
+            (i == jumlah_barang - 1) ? "" : ","
+        );
+    }
+    fprintf(fp, "]");
+
+    fclose(fp);
+    printf("Data berhasil disimpan ke file JSON.\n");
+}
+
+void bacaDariJSON(const char *namaFile) {
+    FILE *fp = fopen(namaFile, "r");
+    if (fp == NULL) return;
+
+    jumlah_barang = 0;
+    char line[512]; 
+
+    if (fgets(line, sizeof(line), fp) == NULL) { fclose(fp); return; }
+
+    while (fgets(line, sizeof(line), fp) != NULL && jumlah_barang < MAX_BARANG) {
+        if (strstr(line, "\"id\"")) {
+            Barang b;
+
+            // 1. Baca ID
+            if (sscanf(line, " %*s \"id\": \"%9[^\"]\",", b.id) != 1) continue; 
+            
+            // 2. Baca Baris Nama 
+            if (fgets(line, sizeof(line), fp) == NULL) break;
+            if (sscanf(line, " %*s \"nama\": \"%49[^\"]\",", b.nama) != 1) continue;
+            
+            // 3. Baca Baris Jumlah
+            if (fgets(line, sizeof(line), fp) == NULL) break;
+            if (sscanf(line, " %*s \"jumlah\": %d", &b.jumlah) != 1) continue;
+            
+            // 4. Lewati Baris Penutup (misalnya, '}%s')
+            if (fgets(line, sizeof(line), fp) == NULL) break; 
+            
+            inventaris[jumlah_barang++] = b;
+        }
+    }
+    
+    fclose(fp);
+    printf("Data berhasil dibaca dari file JSON. Total: %d barang.\n", jumlah_barang);
 }
 
 void tambahBarang() {
@@ -55,7 +117,6 @@ void tambahBarang() {
     jumlah_barang++;
     
     printf("Barang berhasil ditambahkan.\n");
-
     simpanKeJSON("inventaris.json");
 }
 
@@ -256,64 +317,6 @@ void caribarang() {
     }
 }
 
-void simpanKeJSON(const char *namaFile) {
-    FILE *fp = fopen(namaFile, "w");
-    if (fp == NULL) {
-        printf("Gagal membuka file untuk menyimpan data.\n");
-        return;
-    }
-
-    fprintf(fp, "[\n");
-    for (int i = 0; i < jumlah_barang; i++) {
-        fprintf(fp,
-            "  {\n"
-            "    \"id\": \"%s\",\n"
-            "    \"nama\": \"%s\",\n"
-            "    \"jumlah\": %d\n"
-            "  }%s\n",
-            inventaris[i].id,
-            inventaris[i].nama,
-            inventaris[i].jumlah,
-            (i == jumlah_barang - 1) ? "" : ","
-        );
-    }
-    fprintf(fp, "]");
-
-    fclose(fp);
-    printf("Data berhasil disimpan ke file JSON.\n");
-}
-
-
-void bacaDariJSON(const char *namaFile) {
-    FILE *fp = fopen(namaFile, "r");
-    if (fp == NULL) {
-        // File belum ada (pertama kali program dijalankan)
-        return;
-    }
-
-    jumlah_barang = 0;
-
-    while (!feof(fp) && jumlah_barang < MAX_BARANG) {
-        Barang b;
-        char buffer[256];
-
-        if (fscanf(fp,
-            " %*[^{]{"
-            " %*[^:] : \"%9[^\"]\" ,"
-            " %*[^:] : \"%49[^\"]\" ,"
-            " %*[^:] : %d"
-            " %*[^}] }",
-            b.id,
-            b.nama,
-            &b.jumlah
-        ) == 3) {
-            inventaris[jumlah_barang++] = b;
-        }
-    }
-
-    fclose(fp);
-    printf("Data berhasil dibaca dari file JSON. Total: %d barang.\n", jumlah_barang);
-}
 
 // Fungsi Utama
 int main(){
