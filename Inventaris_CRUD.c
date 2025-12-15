@@ -26,19 +26,33 @@ void tampilkanMenu() {
 }
 
 void tambahBarang() {
+    // 1. Cek kapasitas array dulu
     if (jumlah_barang >= MAX_BARANG) {
         printf("Inventaris penuh. Tidak bisa menambah barang baru.\n");
         return;
     }
+
     Barang baru;
+
     printf("Masukkan ID Barang: ");
     scanf("%s", baru.id);
+
+    for (int i = 0; i < jumlah_barang; i++) {
+
+        if (strcmp(inventaris[i].id, baru.id) == 0) {
+            printf("Error: ID '%s' sudah digunakan oleh barang lain!\n", baru.id);
+            printf("Penambahan barang dibatalkan.\n");
+            return; 
+        }
+    }
+
     printf("Masukkan Nama Barang: ");
     scanf("%s", baru.nama);
     printf("Masukkan Jumlah Barang: ");
     scanf("%d", &baru.jumlah);
+    inventaris[jumlah_barang] = baru;
+    jumlah_barang++;
     
-    inventaris[jumlah_barang++] = baru;
     printf("Barang berhasil ditambahkan.\n");
 }
 
@@ -95,11 +109,11 @@ void swapBarang(Barang* a, Barang* b){
     *b = t;
 }
 
-int partitionBarang(Barang arr[], int low, int high) {
+int partitionBarang(Barang arr[], int low, int high, int mode) {
     int pivot = arr[high].jumlah;
     int i = low - 1;
     for (int j = low; j <= high - 1; j++) {
-        if (arr[j].jumlah > pivot) {
+        if ((mode == 1 && arr[j].jumlah < pivot) || (mode == 2 && arr[j].jumlah > pivot)) {
             i++;
             swapBarang(&arr[i], &arr[j]);
         }
@@ -108,11 +122,11 @@ int partitionBarang(Barang arr[], int low, int high) {
     return i + 1;
 }
 
-void quickSortBarang(Barang arr[], int low, int high) {
+void quickSortBarang(Barang arr[], int low, int high, int mode) {
     if (low < high) {
-        int pi = partitionBarang(arr, low, high);
-        quickSortBarang(arr, low, pi - 1);
-        quickSortBarang(arr, pi + 1, high);
+        int pi = partitionBarang(arr, low, high, mode);
+        quickSortBarang(arr, low, pi - 1, mode);
+        quickSortBarang(arr, pi + 1, high, mode);
     }
 }
 
@@ -121,9 +135,36 @@ void urutkanBarang() {
         printf("Tidak ada barang untuk diurutkan.\n");
         return;
     }
-    quickSortBarang(inventaris, 0, jumlah_barang - 1);
-    printf("Inventaris berhasil diurutkan berdasarkan Jumlah Stok.\n");
-    tampilkanSemuaBarang();
+
+    int mode;
+    printf("\n=== Pilih Metode Pengurutan ===\n");
+    printf("1. Ascending (Stok Kecil ke Besar)\n");
+    printf("2. Descending (Stok Besar ke Kecil)\n");
+    printf("Pilihan: ");
+    
+    // Validasi input agar hanya angka
+    if (scanf("%d", &mode) != 1) {
+        while (getchar() != '\n'); 
+        printf("Input tidak valid.\n");
+        return;
+    }
+
+    if (mode == 1 || mode == 2) {
+        quickSortBarang(inventaris, 0, jumlah_barang - 1, mode);
+        
+        if (mode == 1) printf("Inventaris berhasil diurutkan secara Ascending.\n");
+        else printf("Inventaris berhasil diurutkan secara Descending.\n");
+        
+        tampilkanSemuaBarang();
+        
+        if (mode == 2) {
+            printf("\n[PERINGATAN] Anda baru saja mengurutkan secara Descending.\n");
+            printf("Fitur 'Cari Barang (Stok)' menggunakan Jump Search yang membutuhkan data Ascending.\n");
+            printf("Jika Anda mencari stok sekarang, hasilnya mungkin tidak akurat kecuali diurutkan Ascending kembali.\n");
+        }
+    } else {
+        printf("Pilihan mode tidak valid.\n");
+    }
 }
 
 // --- FUNGSI SEARCHING (JUMP SEARCH) ---
